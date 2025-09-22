@@ -1,0 +1,98 @@
+name: Terraform Plan
+
+on:
+  workflow_call:
+    inputs:
+      gh_app_id_keeper_path:
+        required: true
+        type: string
+      gh_app_private_key_keeper_path:
+        required: true
+        type: string
+      aws_access_key_id_keeper_path:
+        required: true
+        type: string
+      aws_secret_access_key_keeper_path:
+        required: true
+        type: string
+      tf_dir:
+        required: true
+        type: string
+        default: "."
+      pr_assignees:
+        type: string
+        default: ""
+      pr_reviewers:
+        type: string
+        default: ""
+    secrets:
+      KSM_CONFIG:
+        required: true
+jobs:
+  update_ami:
+    runs-on: self-hosted
+    container:
+      image: buildpack-deps:bookworm
+    steps:
+      - name: Retrieve secrets from Keeper
+        id: ksecrets
+        uses: Keeper-Security/ksm-action@master
+        with:
+          keeper-secret-config: ${{ secrets.KSM_CONFIG }}
+          secrets: |-
+            ${{ inputs.aws_access_key_id_keeper_path }} > env:AWS_ACCESS_KEY_ID
+            ${{ inputs.aws_secret_access_key_keeper_path }} > env:AWS_SECRET_ACCESS_KEY
+            ${{ inputs.gh_app_id_keeper_path }} > env:GH_APP_ID
+            ${{ inputs.gh_app_private_key_keeper_path }} > env:GH_APP_PRIVATE_KEY
+      - name: Install AWSCLI
+        run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip -qq awscliv2.zip
+          ./aws/install
+      - name: Install JQ
+        run: apt-get update && apt-get install -y jq
+      - uses: actions/checkout@v4
+        name: Checkout source code
+      - name: Get current AMI
+        id: current_ami
+        run: |
+          CUR_AMI_ID=$(grep -oP 'ec2_ami_id\s*=\s*"\Kami-[a-zA-Z0-9]+' "${{ inputs.tf_dir }}/ami.auto.tfvars")
+          echo "id=$CUR_AMI_ID" | tee -a $GITHUB_OUTPUT
+      - name: Get new AMI
+        id: new_ami
+        run: |
+          NEW_AMI_OUTPUT=$(aws ssm get-parameters --names /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.12-x86_64 --region us-east-1)
+          NEW_AMI_ID=$(echo $NEW_AMI_OUTPUT | jq -r '.Parameters[0].Value')
+          DESCRIBE_AMI_OUTPUT=$(aws ec2 describe-images --image-ids "$NEW_AMI_ID" --region us-east-1)
+          NEW_AMI_NAME=$(echo $DESCRIBE_AMI_OUTPUT | jq -r '.Images[0].Name')
+          NEW_AMI_DESC=$(echo $DESCRIBE_AMI_OUTPUT | jq -r '.Images[0].Description')
+          echo "id=$NEW_AMI_ID" | tee -a $GITHUB_OUTPUT
+          echo "name=$NEW_AMI_NAME" | tee -a $GITHUB_OUTPUT
+          echo "desc=$NEW_AMI_DESC" | tee -a $GITHUB_OUTPUT
+      - name: Update AMI id
+        if: steps.current_ami.outputs.id != steps.new_ami.outputs.id
+        run: |
+          echo "# AMI Name: ${{ steps.new_ami.outputs.name }}" > "${{ inputs.tf_dir }}/ami.auto.tfvars"
+          echo "# AMI Desc: ${{ steps.new_ami.outputs.desc }}" >> "${{ inputs.tf_dir }}/ami.auto.tfvars"
+          echo "ec2_ami_id = \"${{ steps.new_ami.outputs.id }}\"" >> "${{ inputs.tf_dir }}/ami.auto.tfvars"
+      - name: Generate a github token
+        id: generate-gh-app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ env.GH_APP_ID }}
+          private-key: ${{ env.GH_APP_PRIVATE_KEY }}
+      - name: Generate env name from tf dir
+        id: tf_env
+        run: echo "name=$(basename ${{ inputs.tf_dir }})" | tee -a $GITHUB_OUTPUT
+      - name: Create Pull Request
+        if: steps.current_ami.outputs.id != steps.new_ami.outputs.id
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ steps.generate-gh-app-token.outputs.token }}
+          commit-message: "Automated PR: Update ${{ steps.tf_env.output.name }} AMI"
+          title: "Update ${{ steps.tf_env.output.name }} AMI"
+          body: "This PR was created automatically by the AMI auto updater Github Action."
+          branch: "update-${{ steps.tf_env.output.name }}-${{ steps.new_ami.outputs.id }}" # The new branch to create for the PR
+          assignees: ${{ inputs.pr_assignees }}
+          reviewers: ${{ inputs.pr_reviewers }}
+          base: "main" # The target branch for the PR
