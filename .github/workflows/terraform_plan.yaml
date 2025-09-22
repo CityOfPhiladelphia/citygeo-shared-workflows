@@ -65,48 +65,48 @@ jobs:
         uses: actions/github-script@v7
         if: github.event_name == 'pull_request'
         env:
-          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+          PLAN: "${{ steps.plan.outputs.stdout }}"
           TF_DIR: "${{ inputs.tf_dir }}"
+          PLAN_OUTCOME: "${{ steps.plan.outcome }}"
+          GITHUB_ACTOR: "${{ github.actor }}"
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            // 1. Retrieve existing bot comments for the PR
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-            })
+            });
+
             const botComment = comments.find(comment => {
-              return comment.user.type === 'Bot' && comment.body.includes('Terraform plan output for ${process.env.TF_DIR}')
-            })
+              return comment.user.type === 'Bot' && comment.body.includes(`Terraform plan output for \`${process.env.TF_DIR}\``);
+            });
 
-            // 2. Prepare format of the comment
-            // const output = `### Terraform plan output for \`${process.env.TF_DIR}\`
-            // #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+            const output = `### Terraform plan output for \`${process.env.TF_DIR}\`
+            #### Terraform Plan 📖\`${process.env.PLAN_OUTCOME}\`
 
-            // <details><summary>Show Plan</summary>
+            <details><summary>Show Plan</summary>
 
-            // \`\`\`\n
-            // ${process.env.PLAN}
-            // \`\`\`
+            \`\`\`
+            ${process.env.PLAN}
+            \`\`\`
 
-            // </details>
+            </details>
 
-            // *Pusher: @${{ github.actor }}*`;
+            *Pusher: @${process.env.GITHUB_ACTOR}*`;
 
-            // 3. If we have a comment, update it, otherwise create a new one
-            // if (botComment) {
-            //   github.rest.issues.updateComment({
-            //     owner: context.repo.owner,
-            //     repo: context.repo.repo,
-            //     comment_id: botComment.id,
-            //     body: output
-            //   })
-            // } else {
-            //   github.rest.issues.createComment({
-            //     issue_number: context.issue.number,
-            //     owner: context.repo.owner,
-            //     repo: context.repo.repo,
-            //     body: output
-            //   })
-            // }
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: output,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: output,
+              });
+            }
