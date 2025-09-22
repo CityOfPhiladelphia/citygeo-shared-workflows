@@ -89,10 +89,10 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ steps.generate-gh-app-token.outputs.token }}
-          commit-message: "Automated PR: Update ${{ steps.tf_env.output.name }} AMI"
-          title: "Update ${{ steps.tf_env.output.name }} AMI"
+          commit-message: "Automated PR: Update ${{ steps.tf_env.outputs.name }} AMI"
+          title: "Update ${{ steps.tf_env.outputs.name }} AMI"
           body: "This PR was created automatically by the AMI auto updater Github Action."
-          branch: "update-${{ steps.tf_env.output.name }}-${{ steps.new_ami.outputs.id }}" # The new branch to create for the PR
+          branch: "update-${{ steps.tf_env.outputs.name }}-${{ steps.new_ami.outputs.id }}" # The new branch to create for the PR
           assignees: ${{ inputs.pr_assignees }}
           reviewers: ${{ inputs.pr_reviewers }}
           base: "main" # The target branch for the PR
