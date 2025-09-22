@@ -1,0 +1,63 @@
+name: TFLint
+
+on:
+  workflow_call:
+    inputs:
+      #tf_token_keeper_path:
+      #  required: true
+      #  type: string
+      parent_tf_dir:
+        required: true
+        type: string
+        description: Parent directory where all Terraform files are underneath
+        default: "."
+      cli_opts:
+        required: false
+        type: string
+        default: " "
+    secrets:
+      github_token:
+        required: true
+
+jobs:
+  terraform_fmt:
+    runs-on: self-hosted
+    container:
+      image: buildpack-deps:bookworm
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout source code
+
+      - name: Calculate tflint config hash
+        id: hash
+        run: |
+          echo "hash=$(sha256sum ${{ inputs.parent_tf_dir }}/.tflint.hcl | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v4
+        name: Cache plugin dir
+        with:
+          path: ~/.tflint.d/plugins
+          key: selfhosted-tflint-${{ steps.hash.outputs.hash }}
+
+      - uses: terraform-linters/setup-tflint@v4
+        name: Setup TFLint
+        with:
+          tflint_version: latest
+
+      - name: Show version
+        run: |
+          cd ${{ inputs.parent_tf_dir }}
+          tflint --version
+
+      - name: Init TFLint
+        run: |
+          cd ${{ inputs.parent_tf_dir }}
+          tflint --init
+        env:
+          # https://github.com/terraform-linters/tflint/blob/master/docs/user-guide/plugins.md#avoiding-rate-limiting
+          GITHUB_TOKEN: ${{ secrets.github_token }}
+
+      - name: Run TFLint recursively
+        run: |
+          cd ${{ inputs.parent_tf_dir }}
+          tflint --recursive -f compact ${{ inputs.cli_opts }}
