@@ -1,0 +1,46 @@
+name: Terraform Format
+
+on:
+  workflow_call:
+    inputs:
+      #tf_token_keeper_path:
+      #  required: true
+      #  type: string
+      parent_tf_dir:
+        required: true
+        type: string
+        description: Parent directory where all Terraform files are underneath
+        default: "."
+      cli_opts:
+        required: false
+        type: string
+        default: " "
+
+jobs:
+  terraform_fmt:
+    runs-on: self-hosted
+    container:
+      image: buildpack-deps:bookworm
+    steps:
+      #- name: Retrieve secrets from Keeper
+      #  id: ksecrets
+      #  uses: Keeper-Security/ksm-action@master
+      #  with:
+      #    keeper-secret-config: ${{ secrets.KSM_CONFIG }}
+      #    secrets: |-
+      #      ${{ inputs.tf_token_keeper_path }} > env:TF_TOKEN
+      - name: Checkout source code
+        uses: actions/checkout@v4
+      - name: Setup Nodejs
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          check-latest: true
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          cli_config_credentials_token: AAA
+      - name: Terraform Format
+        run: |
+          cd $TF_DIR
+          terraform fmt -recursive -check ${{ inputs.cli_opts }} .
