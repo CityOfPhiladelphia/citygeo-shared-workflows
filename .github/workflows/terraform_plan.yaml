@@ -81,18 +81,18 @@ jobs:
             })
 
             // 2. Prepare format of the comment
-            const output = `### Terraform plan output for \`${process.env.TF_DIR}\`
-            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+            // const output = `### Terraform plan output for \`${process.env.TF_DIR}\`
+            // #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
 
-            <details><summary>Show Plan</summary>
+            // <details><summary>Show Plan</summary>
 
-            \`\`\`\n
-            ${process.env.PLAN}
-            \`\`\`
+            // \`\`\`\n
+            // ${process.env.PLAN}
+            // \`\`\`
 
-            </details>
+            // </details>
 
-            *Pusher: @${{ github.actor }}*`;
+            // *Pusher: @${{ github.actor }}*`;
 
             // 3. If we have a comment, update it, otherwise create a new one
             // if (botComment) {
