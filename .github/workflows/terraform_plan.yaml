@@ -25,7 +25,7 @@ on:
         required: true
 
 jobs:
-  terraform_fmt:
+  terraform_plan:
     runs-on: self-hosted
     container:
       image: buildpack-deps:bookworm
@@ -55,8 +55,46 @@ jobs:
           cd ${{ inputs.tf_dir }}
           terraform init
       - name: Terraform Plan
+        id: plan
         run: |
           cd ${{ inputs.tf_dir }}
           terraform plan -lock-timeout=30s
         env:
           KEEPER_CREDENTIAL: ${{ secrets.KSM_CONFIG }}
+      - name: Write terraform plan output to pull request
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+            #### <details><summary>Validation Output</summary>
+
+            #### \`\`\`\n
+            #### ${{ steps.validate.outputs.stdout }}
+            #### \`\`\`
+
+            #### </details>
+
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`\n
+            ${process.env.PLAN}
+            \`\`\`
+
+            </details>
+
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Workflow: \`${{ github.workflow }}\`*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
