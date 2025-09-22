@@ -15,6 +15,9 @@ on:
         required: false
         type: string
         default: " "
+    secrets:
+      GITHUB_TOKEN:
+        required: true
 
 jobs:
   terraform_fmt:
@@ -52,7 +55,7 @@ jobs:
           tflint --init
         env:
           # https://github.com/terraform-linters/tflint/blob/master/docs/user-guide/plugins.md#avoiding-rate-limiting
-          GITHUB_TOKEN: ${{ secrets.github_token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run TFLint recursively
         run: |
