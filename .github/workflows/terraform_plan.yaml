@@ -82,8 +82,10 @@ jobs:
               return comment.user.type === 'Bot' && comment.body.includes(`Terraform plan output for \`${process.env.TF_DIR}\``);
             });
 
+            const hasChanges = process.env.PLAN.indexOf("No changes. Your infrastructure matches the configuration.") >= 0 ? 'no' : 'yes'
+
             const output = `### Terraform plan output for \`${process.env.TF_DIR}\`
-            #### Terraform Plan 📖\`${process.env.PLAN_OUTCOME}\`
+            #### Contains changes: \`${hasChanges}\`
 
             <details><summary>Show Plan</summary>
 
