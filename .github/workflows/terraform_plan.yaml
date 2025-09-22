@@ -66,6 +66,7 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+          TF_DIR: "${{ inputs.tf_dir }}"
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -76,11 +77,11 @@ jobs:
               issue_number: context.issue.number,
             })
             const botComment = comments.find(comment => {
-              return comment.user.type === 'Bot' && comment.body.includes('Terraform plan output for ${{ inputs.tf_dir }}')
+              return comment.user.type === 'Bot' && comment.body.includes('Terraform plan output for ${process.env.TF_DIR}')
             })
 
             // 2. Prepare format of the comment
-            const output = `### Terraform plan output for ${{ inputs.tf_dir }}`
+            const output = `### Terraform plan output for \`${process.env.TF_DIR}\`
             #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
 
             <details><summary>Show Plan</summary>
