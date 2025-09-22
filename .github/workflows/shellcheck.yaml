@@ -1,0 +1,25 @@
+name: Shellcheck
+
+on:
+  workflow_call:
+    inputs:
+      files:
+        required: true
+        type: string
+      cli_opts:
+        required: false
+        type: string
+        default: " "
+
+jobs:
+  shellcheck:
+    runs-on: self-hosted
+    container:
+      image: buildpack-deps:bookworm
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout source code
+      - name: Install shellcheck
+        run: apt update && apt install shellcheck
+      - name: Run ShellCheck
+        run: shellcheck ${{ inputs.cli_opts }} ${{ inputs.files }}
