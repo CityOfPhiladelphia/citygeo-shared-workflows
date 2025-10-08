@@ -3,9 +3,6 @@ name: Terraform Format
 on:
   workflow_call:
     inputs:
-      #tf_token_keeper_path:
-      #  required: true
-      #  type: string
       parent_tf_dir:
         required: true
         type: string
@@ -22,13 +19,6 @@ jobs:
     container:
       image: buildpack-deps:bookworm
     steps:
-      #- name: Retrieve secrets from Keeper
-      #  id: ksecrets
-      #  uses: Keeper-Security/ksm-action@master
-      #  with:
-      #    keeper-secret-config: ${{ secrets.KSM_CONFIG }}
-      #    secrets: |-
-      #      ${{ inputs.tf_token_keeper_path }} > env:TF_TOKEN
       - name: Checkout source code
         uses: actions/checkout@v4
       - name: Setup Nodejs
