@@ -84,7 +84,7 @@ jobs:
         run: echo "name=$(basename ${{ inputs.tf_dir }})" | tee -a $GITHUB_OUTPUT
       - name: Create Pull Request
         if: steps.current_ami.outputs.id != steps.new_ami.outputs.id
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ steps.generate-gh-app-token.outputs.token }}
           commit-message: "Automated PR: Update ${{ steps.tf_env.outputs.name }} AMI"
