@@ -28,7 +28,7 @@ jobs:
   terraform_apply:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
         name: Checkout source code
       - name: Retrieve secrets from Keeper
         id: ksecrets
@@ -40,12 +40,12 @@ jobs:
             ${{ inputs.aws_access_key_id_keeper_path }} > env:AWS_ACCESS_KEY_ID
             ${{ inputs.aws_secret_access_key_keeper_path }} > env:AWS_SECRET_ACCESS_KEY
       - name: Setup Nodejs
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: lts/*
           check-latest: true
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           cli_config_credentials_token: ${{ env.TF_TOKEN }}
       - name: Terraform Init
