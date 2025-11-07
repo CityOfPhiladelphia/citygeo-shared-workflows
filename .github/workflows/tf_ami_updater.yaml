@@ -31,8 +31,6 @@ on:
 jobs:
   update_ami:
     runs-on: self-hosted
-    container:
-      image: buildpack-deps:bookworm
     steps:
       - name: Retrieve secrets from Keeper
         id: ksecrets

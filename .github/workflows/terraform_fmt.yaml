@@ -16,8 +16,6 @@ on:
 jobs:
   terraform_fmt:
     runs-on: self-hosted
-    container:
-      image: buildpack-deps:bookworm
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
