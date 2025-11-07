@@ -20,7 +20,7 @@ jobs:
   terraform_fmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
         name: Checkout source code
 
       - name: Calculate tflint config hash
@@ -28,13 +28,13 @@ jobs:
         run: |
           echo "hash=$(sha256sum ${{ inputs.parent_tf_dir }}/.tflint.hcl | cut -d' ' -f1)" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         name: Cache plugin dir
         with:
           path: ~/.tflint.d/plugins
           key: selfhosted-tflint-${{ steps.hash.outputs.hash }}
 
-      - uses: terraform-linters/setup-tflint@v4
+      - uses: terraform-linters/setup-tflint@90f302c255ef959cbfb4bd10581afecdb7ece3e6 # v4
         name: Setup TFLint
         with:
           tflint_version: latest
