@@ -40,7 +40,7 @@ jobs:
             ${{ inputs.aws_access_key_id_keeper_path }} > env:AWS_ACCESS_KEY_ID
             ${{ inputs.aws_secret_access_key_keeper_path }} > env:AWS_SECRET_ACCESS_KEY
       - name: Setup Nodejs
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
         with:
           node-version: lts/*
           check-latest: true
