@@ -28,7 +28,7 @@ jobs:
   terraform_plan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6
         name: Checkout source code
       - name: Retrieve secrets from Keeper
         id: ksecrets
