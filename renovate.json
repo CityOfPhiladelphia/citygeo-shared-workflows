@@ -6,5 +6,8 @@
   ],
   "ignorePresets": [
     ":ignoreModulesAndTests"
+  ],
+  "assignees": [
+    "Weastie
   ]
 }
