@@ -42,13 +42,6 @@ jobs:
             ${{ inputs.aws_secret_access_key_keeper_path }} > env:AWS_SECRET_ACCESS_KEY
             ${{ inputs.gh_app_id_keeper_path }} > env:GH_APP_ID
             ${{ inputs.gh_app_private_key_keeper_path }} > env:GH_APP_PRIVATE_KEY
-      #- name: Install AWSCLI
-      #  run: |
-      #    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-      #    unzip -qq awscliv2.zip
-      #    ./aws/install
-      - name: Install JQ
-        run: apt-get update && apt-get install -y jq
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
         name: Checkout source code
       - name: Get current AMI
