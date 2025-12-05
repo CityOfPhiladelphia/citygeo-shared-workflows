@@ -56,7 +56,7 @@ jobs:
         id: plan
         run: |
           cd ${{ inputs.tf_dir }}
-          terraform plan -no-color -lock-timeout=30s
+          terraform plan -no-color -lock-timeout=45s
         env:
           KEEPER_CREDENTIAL: ${{ secrets.KSM_CONFIG }}
       - name: Write terraform plan output to pull request
