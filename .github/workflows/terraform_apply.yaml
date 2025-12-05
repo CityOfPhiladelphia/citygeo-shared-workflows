@@ -55,6 +55,6 @@ jobs:
       - name: Terraform Apply
         run: |
           cd ${{ inputs.tf_dir }}
-          terraform apply -auto-approve -lock-timeout=45s
+          terraform apply -auto-approve -lock-timeout=120s
         env:
           KEEPER_CREDENTIAL: ${{ secrets.KSM_CONFIG }}
