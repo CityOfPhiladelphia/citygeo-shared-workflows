@@ -68,7 +68,7 @@ jobs:
           echo "ec2_ami_id = \"${{ steps.new_ami.outputs.id }}\"" >> "${{ inputs.tf_dir }}/ami.auto.tfvars"
       - name: Generate a github token
         id: generate-gh-app-token
-        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3
         with:
           app-id: ${{ env.GH_APP_ID }}
           private-key: ${{ env.GH_APP_PRIVATE_KEY }}
