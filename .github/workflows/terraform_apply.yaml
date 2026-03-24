@@ -35,7 +35,7 @@ jobs:
         name: Checkout source code
       - name: Retrieve secrets from Keeper
         id: ksecrets
-        uses: Keeper-Security/ksm-action@master
+        uses: Keeper-Security/ksm-action@d92a3c5d1df69745083436ba189f64a9cc1b25f5 # master
         with:
           keeper-secret-config: ${{ secrets.KSM_CONFIG }}
           secrets: |-
