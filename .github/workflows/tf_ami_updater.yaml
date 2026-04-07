@@ -34,7 +34,7 @@ jobs:
     steps:
       - name: Retrieve secrets from Keeper
         id: ksecrets
-        uses: Keeper-Security/ksm-action@560d170bea253481a48eae617f0493aab7436c28 # master
+        uses: Keeper-Security/ksm-action@37abbada28637b6478ba845e73d3f8b9676572fe # master
         with:
           keeper-secret-config: ${{ secrets.KSM_CONFIG }}
           secrets: |-
