@@ -1,7 +1,7 @@
 name: Pom verify
 
 on:
-  pull_request:
+  workflow_call:
 
 jobs:
   pom:
