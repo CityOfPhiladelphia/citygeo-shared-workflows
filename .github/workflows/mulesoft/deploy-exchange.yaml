@@ -1,0 +1,94 @@
+---
+name: Maven Deploy to Anypoint Exchange
+
+on:
+  workflow_call:
+
+concurrency:
+  group: deploy-exchange
+  cancel-in-progress: false
+
+jobs:
+  deploy-exchange:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v6
+
+      - name: Get pom.xml parameters
+        id: pomxml
+        run: |
+          curl -sSL https://bit.ly/install-xq | sudo bash
+          GROUP_ID=$(cat pom.xml | xq -q "project > groupId")
+          ASSET_ID=$(cat pom.xml | xq -q "project > artifactId")
+          VERSION=$(cat pom.xml | xq -q "project > version")
+          echo "GROUP_ID=$GROUP_ID" >> $GITHUB_OUTPUT
+          echo "ASSET_ID=$ASSET_ID" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create fake package-lock.json
+        run: echo "{}" >> package-lock.json
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          cache: "npm"
+
+      - name: Install Anypoint Cli
+        run: |
+          npm install -g anypoint-cli-v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: "zulu"
+          java-version: 17
+          # cache: "maven"
+          server-id: Repository
+          server-username: EXCHANGE_USERNAME
+          server-password: EXCHANGE_PASSWORD
+
+      - name: Retrieve Credentials from Keeper
+        id: ksecrets
+        uses: Keeper-Security/ksm-action@master
+        with:
+          keeper-secret-config: ${{ secrets.KSM_CONFIG }}
+          secrets: |-
+            HGM2Arit4Ay4djbYppD3ww/field/login > env:CONNECTED_APP_CLIENT_ID
+            HGM2Arit4Ay4djbYppD3ww/field/password > env:CONNECTED_APP_CLIENT_SECRET
+
+      - name: Check if current version deployed
+        id: check_deployed
+        run: |
+          ASSET="${{ steps.pomxml.outputs.ASSET_ID }}/${{ steps.pomxml.outputs.VERSION }}"
+          echo $ASSET
+          anypoint-cli-v4 exchange:asset:describe $ASSET || EXIT_CODE=$?
+          EXIT_CODE=${EXIT_CODE:-0}
+          echo "Command exited with code: $EXIT_CODE"
+
+          # 2. Decide what to do based on the code
+          if [ "$EXIT_CODE" -eq 0 ] || [ "$EXIT_CODE" -eq 2 ]; then
+            echo "Exit code is acceptable ($EXIT_CODE). Moving on..."
+            
+            # Save it to outputs so the NEXT step knows whether it was a 0 or a 2
+            echo "cmd_status=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+          else
+            echo "CRITICAL: Unexpected exit code ($EXIT_CODE)! Failing the step."
+            
+            # Explicitly exit the shell with the bad code to fail this GitHub Actions step
+            exit $EXIT_CODE
+          fi
+        env:
+          ANYPOINT_CLIENT_ID: ${{ env.CONNECTED_APP_CLIENT_ID }}
+          ANYPOINT_CLIENT_SECRET: ${{ env.CONNECTED_APP_CLIENT_SECRET }}
+          ANYPOINT_ORG: ${{ steps.pomxml.outputs.GROUP_ID }}
+
+      - name: Deploy to Exchange
+        if: steps.check_deployed.outputs.cmd_status == '2'
+        run: |
+          mvn -B -ntp clean deploy -DskipTests
+        env:
+          CONNECTED_APP_CLIENT_ID: ${{ env.CONNECTED_APP_CLIENT_ID }}
+          CONNECTED_APP_CLIENT_SECRET: ${{ env.CONNECTED_APP_CLIENT_SECRET }}
+          EXCHANGE_USERNAME: ~~~Client~~~
+          EXCHANGE_PASSWORD: ${{ env.CONNECTED_APP_CLIENT_ID }}~?~${{ env.CONNECTED_APP_CLIENT_SECRET }}

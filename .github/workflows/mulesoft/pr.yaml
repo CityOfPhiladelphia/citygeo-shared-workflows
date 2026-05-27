@@ -1,0 +1,50 @@
+name: PR
+
+on:
+  pull_request:
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v6
+
+      - name: Get pom.xml parameters for this branch
+        id: pomxml
+        run: |
+          curl -sSL https://bit.ly/install-xq | sudo bash
+          GROUP_ID=$(cat pom.xml | xq -q "project > groupId")
+          ASSET_ID=$(cat pom.xml | xq -q "project > artifactId")
+          VERSION=$(cat pom.xml | xq -q "project > version")
+          echo "GROUP_ID=$GROUP_ID" >> $GITHUB_OUTPUT
+          echo "ASSET_ID=$ASSET_ID" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Checkout main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Get pom.xml parameters on main
+        id: pomxml-main
+        run: |
+          GROUP_ID=$(cat pom.xml | xq -q "project > groupId")
+          ASSET_ID=$(cat pom.xml | xq -q "project > artifactId")
+          VERSION=$(cat pom.xml | xq -q "project > version")
+          echo "GROUP_ID=$GROUP_ID" >> $GITHUB_OUTPUT
+          echo "ASSET_ID=$ASSET_ID" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Comment on PR
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          message: |
+            App version in pom.xml on this branch: ${{ steps.pomxml.outputs.VERSION }}.
+
+            App version in pom.xml on main branch: ${{ steps.pomxml-main.outputs.VERSION }}.
+
+            App version in pom.xml has ${{ steps.pomxml-main.outputs.VERSION == steps.pomxml.outputs.VERSION && '❌ NOT been updated. Code will not be deployed.' || '✅ been updated. Code will be re-deployed.' }}

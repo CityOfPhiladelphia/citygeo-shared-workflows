@@ -1,0 +1,71 @@
+---
+name: Maven Deploy to Runtime Fabric
+on:
+  workflow_call:
+    inputs:
+      MS_ENV:
+        required: true
+        type: string
+
+concurrency:
+  group: deploy-rtf-${{ inputs.MS_ENV }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-rtf:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.MS_ENV }}
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v6
+
+      - name: Get MuleSoft parameters
+        id: msparams
+        run: |
+          # xml parser
+          MS_ENV=${{ inputs.MS_ENV }}
+          if [[ "$MS_ENV" == "TEST" ]]; then
+            echo "MS_TARGET=eks-rtf-test" >> $GITHUB_OUTPUT
+            echo "MS_RTF_URL=https://rtf-testing.phila.gov" >> $GITHUB_OUTPUT
+          elif [[ "$MS_ENV" == "DEV" ]]; then
+            echo "MS_TARGET=eks-rtf-dev" >> $GITHUB_OUTPUT
+            echo "MS_RTF_URL=https://rtf-dev.phila.gov" >> $GITHUB_OUTPUT
+          elif [[ "$MS_ENV" == "PROD" ]]; then
+            echo "MS_TARGET=eks-rtf-prod" >> $GITHUB_OUTPUT
+            echo "MS_RTF_URL=https://rtf-prod.phila.gov" >> $GITHUB_OUTPUT
+          else
+            echo "Invalid mulesoft env"
+            exit 1
+          fi
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: "zulu"
+          java-version: 17
+          # cache: "maven"
+          server-id: Repository
+          server-username: EXCHANGE_USERNAME
+          server-password: EXCHANGE_PASSWORD
+
+      - name: Retrieve Credentials from Keeper
+        id: ksecrets
+        uses: Keeper-Security/ksm-action@master
+        with:
+          keeper-secret-config: ${{ secrets.KSM_CONFIG }}
+          secrets: |-
+            HGM2Arit4Ay4djbYppD3ww/field/login > env:CONNECTED_APP_CLIENT_ID
+            HGM2Arit4Ay4djbYppD3ww/field/password > env:CONNECTED_APP_CLIENT_SECRET
+
+      - name: Deploy to RTF
+        run: |
+          mvn -B -ntp clean deploy -DskipTests -DmuleDeploy
+        env:
+          CONNECTED_APP_CLIENT_ID: ${{ env.CONNECTED_APP_CLIENT_ID }}
+          CONNECTED_APP_CLIENT_SECRET: ${{ env.CONNECTED_APP_CLIENT_SECRET }}
+          EXCHANGE_USERNAME: ~~~Client~~~
+          EXCHANGE_PASSWORD: ${{ env.CONNECTED_APP_CLIENT_ID }}~?~${{ env.CONNECTED_APP_CLIENT_SECRET }}
+          MS_ENV: ${{ inputs.MS_ENV }}
+          MS_TARGET: ${{ steps.msparams.outputs.MS_TARGET }}
+          MS_RTF_URL: ${{ steps.msparams.outputs.MS_RTF_URL }}
