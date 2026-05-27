@@ -1,0 +1,64 @@
+name: Pom verify
+
+on:
+  pull_request:
+
+jobs:
+  pom:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v6
+
+      - name: Get pom.xml parameters for this branch
+        id: pomxml
+        run: |
+          curl -sSL https://bit.ly/install-xq | sudo bash
+
+          echo "Validating pom.xml properties using xq..."
+
+          # Initialize error counter
+          ERRORS=0
+
+          # Helper function to extract and validate using xq xpath syntax
+          validate_xpath() {
+              local xpath_query=$1
+              local expected_val=$2
+              local label=$3
+
+              # Extract the value using the installed xq syntax
+              local actual_val
+              actual_val=$(xq -x "$xpath_query" pom.xml 2>/dev/null | xargs)
+
+              if [ "$actual_val" != "$expected_val" ]; then
+                  echo "❌ Error: Invalid $xpath_query"
+                  echo "   Expected: '$expected_val'"
+                  echo "   Got     : '$actual_val'"
+                  ERRORS=$((ERRORS + 1))
+              fi
+          }
+
+          # Base path targeting the mule-maven-plugin's runtimeFabricDeployment block
+          # Note: uses standard XPath targeting the specific artifactId
+          RTF_XPATH="//plugin[artifactId='mule-maven-plugin']/configuration/runtimeFabricDeployment"
+
+          # Run assertions for each element
+          validate_xpath "$RTF_XPATH/connectedAppGrantType" "client_credentials"
+          validate_xpath "$RTF_XPATH/connectedAppClientId" '${env.CONNECTED_APP_CLIENT_ID}'
+          validate_xpath "$RTF_XPATH/connectedAppClientSecret" '${env.CONNECTED_APP_CLIENT_SECRET}'
+          validate_xpath "$RTF_XPATH/target" '${env.MS_TARGET}'
+          validate_xpath "$RTF_XPATH/environment" '${env.MS_ENV}'
+
+          # Final Evaluation
+          if [ "$ERRORS" -gt 0 ]; then
+              echo "--------------------------------------------------"
+              echo "❌ Validation FAILED! Found $ERRORS misconfigured property/properties."
+              exit 1
+          else
+              echo "--------------------------------------------------"
+              echo "✅ Validation PASSED! All pom.xml parameters match exactly."
+              exit 0
+          fi
