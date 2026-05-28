@@ -44,6 +44,7 @@ jobs:
           # Base path targeting the mule-maven-plugin's runtimeFabricDeployment block
           # Note: uses standard XPath targeting the specific artifactId
           RTF_XPATH="//plugin[artifactId='mule-maven-plugin']/configuration/runtimeFabricDeployment"
+          EXCHANGE_REPO="https://maven.anypoint.mulesoft.com/api/v3/organizations/\${project.groupId}/maven"
 
           # Run assertions for each element
           validate_xpath "$RTF_XPATH/connectedAppGrantType" "client_credentials"
@@ -51,6 +52,8 @@ jobs:
           validate_xpath "$RTF_XPATH/connectedAppClientSecret" '${env.CONNECTED_APP_CLIENT_SECRET}'
           validate_xpath "$RTF_XPATH/target" '${env.MS_TARGET}'
           validate_xpath "$RTF_XPATH/environment" '${env.MS_ENV}'
+          validate_xpath "//distributionManagement/repository[id='Repository']/url" $EXCHANGE_REPO
+          validate_xpath "//repositories/repository[id='Repository']/url" $EXCHANGE_REPO
 
           # Final Evaluation
           if [ "$ERRORS" -gt 0 ]; then
