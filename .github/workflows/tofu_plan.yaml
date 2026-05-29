@@ -82,7 +82,7 @@ jobs:
               processedPlan = process.env.PLAN.slice(tfModifyIndex) 
             }
 
-            const output = `### Terraform plan output for \`${process.env.TF_DIR}\`
+            const output = `### Tofu plan output for \`${process.env.TF_DIR}\`
             #### Contains changes: \`${hasChanges}\`
 
             <details><summary>Show Plan</summary>
