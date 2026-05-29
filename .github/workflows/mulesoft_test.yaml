@@ -15,7 +15,24 @@ jobs:
         with:
           distribution: "zulu"
           java-version: 17
+          server-id: Repository
+          server-username: EXCHANGE_USERNAME
+          server-password: EXCHANGE_PASSWORD
+
+      - name: Retrieve Credentials from Keeper
+        id: ksecrets
+        uses: Keeper-Security/ksm-action@37abbada28637b6478ba845e73d3f8b9676572fe # master
+        with:
+          keeper-secret-config: ${{ secrets.KSM_CONFIG }}
+          secrets: |-
+            HGM2Arit4Ay4djbYppD3ww/field/login > env:CONNECTED_APP_CLIENT_ID
+            HGM2Arit4Ay4djbYppD3ww/field/password > env:CONNECTED_APP_CLIENT_SECRET
 
       - name: Maven Test
         run: |
           mvn -B -ntp clean test
+        env:
+          CONNECTED_APP_CLIENT_ID: ${{ env.CONNECTED_APP_CLIENT_ID }}
+          CONNECTED_APP_CLIENT_SECRET: ${{ env.CONNECTED_APP_CLIENT_SECRET }}
+          EXCHANGE_USERNAME: ~~~Client~~~
+          EXCHANGE_PASSWORD: ${{ env.CONNECTED_APP_CLIENT_ID }}~?~${{ env.CONNECTED_APP_CLIENT_SECRET }}
