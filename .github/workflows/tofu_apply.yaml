@@ -3,6 +3,9 @@ name: Tofu Apply
 on:
   workflow_call:
     inputs:
+      deploy_environment:
+        type: string
+        default: ""
       aws_access_key_id_keeper_path:
         required: true
         type: string
@@ -27,6 +30,8 @@ on:
 jobs:
   terraform_apply:
     runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.deploy_environment }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         name: Checkout source code
