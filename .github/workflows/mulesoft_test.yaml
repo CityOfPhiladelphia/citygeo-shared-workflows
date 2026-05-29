@@ -30,7 +30,7 @@ jobs:
 
       - name: Maven Test
         run: |
-          mvn -B -ntp clean test
+          mvn -B -ntp -X clean test
         env:
           CONNECTED_APP_CLIENT_ID: ${{ env.CONNECTED_APP_CLIENT_ID }}
           CONNECTED_APP_CLIENT_SECRET: ${{ env.CONNECTED_APP_CLIENT_SECRET }}
