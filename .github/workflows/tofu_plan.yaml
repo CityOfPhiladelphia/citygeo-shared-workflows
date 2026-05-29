@@ -1,0 +1,112 @@
+name: Terraform Plan
+
+on:
+  workflow_call:
+    inputs:
+      aws_access_key_id_keeper_path:
+        required: true
+        type: string
+      aws_secret_access_key_keeper_path:
+        required: true
+        type: string
+      terraform_keeper_key_keeper_path:
+        type: string
+        default: dSbGhN1_J1tqv-4dzrm8hw/field/password
+      tf_dir:
+        required: true
+        type: string
+        default: "."
+      cli_opts:
+        required: false
+        type: string
+        default: " "
+    secrets:
+      KSM_CONFIG:
+        required: true
+
+jobs:
+  terraform_plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        name: Checkout source code
+      - name: Retrieve secrets from Keeper
+        id: ksecrets
+        uses: Keeper-Security/ksm-action@37abbada28637b6478ba845e73d3f8b9676572fe # master
+        with:
+          keeper-secret-config: ${{ secrets.KSM_CONFIG }}
+          secrets: |-
+            ${{ inputs.aws_access_key_id_keeper_path }} > env:AWS_ACCESS_KEY_ID
+            ${{ inputs.aws_secret_access_key_keeper_path }} > env:AWS_SECRET_ACCESS_KEY
+            ${{ inputs.terraform_keeper_key_keeper_path }} > env:TF_KEEPER_KEY
+      - name: Setup Tofu
+        uses: opentofu/setup-opentofu@v2
+      - name: Tofu Init
+        run: |
+          cd ${{ inputs.tf_dir }}
+          tofu init
+      - name: Tofu Plan
+        id: plan
+        run: |
+          cd ${{ inputs.tf_dir }}
+          tofu plan -no-color -lock-timeout=300s
+        env:
+          KEEPER_CREDENTIAL: ${{ env.TF_KEEPER_KEY }}
+      - name: Write tofu plan output to pull request
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: "${{ steps.plan.outputs.stdout }}"
+          TF_DIR: "${{ inputs.tf_dir }}"
+          PLAN_OUTCOME: "${{ steps.plan.outcome }}"
+          GITHUB_ACTOR: "${{ github.actor }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment => {
+              return comment.user.type === 'Bot' && comment.body.includes(`Tofu plan output for \`${process.env.TF_DIR}\``);
+            });
+
+            const hasChanges = process.env.PLAN.indexOf("No changes. Your infrastructure matches the configuration.") >= 0 ? 'no' : 'yes'
+
+            let processedPlan = process.env.PLAN;
+
+            const tfModifyIndex = process.env.PLAN.indexOf("Tofu will perform the following actions:")
+            if (tfModifyIndex >= 0) {
+              processedPlan = process.env.PLAN.slice(tfModifyIndex) 
+            }
+
+            const output = `### Terraform plan output for \`${process.env.TF_DIR}\`
+            #### Contains changes: \`${hasChanges}\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`
+            ${processedPlan}
+            \`\`\`
+
+            </details>
+
+            *Pusher: @${process.env.GITHUB_ACTOR}*`;
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: output,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: output,
+              });
+            }

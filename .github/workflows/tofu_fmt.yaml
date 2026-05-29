@@ -1,0 +1,32 @@
+name: Terraform Format
+
+on:
+  workflow_call:
+    inputs:
+      parent_tf_dir:
+        required: true
+        type: string
+        description: Parent directory where all Terraform files are underneath
+        default: "."
+      cli_opts:
+        required: false
+        type: string
+        default: " "
+
+jobs:
+  terraform_fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - name: Setup Nodejs
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: lts/*
+          check-latest: true
+      - name: Setup Terraform
+        uses: opentofu/setup-opentofu@v2
+      - name: Tofu Format
+        run: |
+          cd $TF_DIR
+          tofu fmt -recursive -check ${{ inputs.cli_opts }} .
