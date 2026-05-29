@@ -25,7 +25,7 @@ jobs:
           node-version: lts/*
           check-latest: true
       - name: Setup Terraform
-        uses: opentofu/setup-opentofu@v2
+        uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2
       - name: Tofu Format
         run: |
           cd $TF_DIR
