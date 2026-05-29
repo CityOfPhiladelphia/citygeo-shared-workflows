@@ -32,7 +32,7 @@ Basic overview of what you need to change:
 
 ### Github Repo Settings
 
-1. Add OIT-Mulesoft to "Collaborators and teams"
+1. Add OIT-Mulesoft to "Collaborators and teams" with at least write permissions.
 1. Add an environment for "dev", "test", and "prod", spelled that way exactly
    1. Leave "dev" and "test" at default values.
    1. For "prod" environment, enable "Required reviewers" and select `CityOfPhiladelphia/oit-mulesoft`
