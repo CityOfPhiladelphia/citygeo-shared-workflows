@@ -53,6 +53,6 @@ jobs:
       - name: Tofu Apply
         run: |
           cd ${{ inputs.tf_dir }}
-          tofu apply -auto-approve -lock-timeout=120s
+          tofu apply -auto-approve -lock-timeout=120s -input=false ${{ inputs.cli_opts }}
         env:
           KEEPER_CREDENTIAL: ${{ env.TF_KEEPER_KEY }}

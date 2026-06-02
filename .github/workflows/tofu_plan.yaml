@@ -49,7 +49,7 @@ jobs:
         id: plan
         run: |
           cd ${{ inputs.tf_dir }}
-          tofu plan -no-color -lock-timeout=300s
+          tofu plan -no-color -lock-timeout=300s -input=false ${{ inputs.cli_opts }}
         env:
           KEEPER_CREDENTIAL: ${{ env.TF_KEEPER_KEY }}
       - name: Write tofu plan output to pull request
