@@ -6,15 +6,6 @@ on:
       deploy_environment:
         type: string
         default: ""
-      aws_access_key_id_keeper_path:
-        required: true
-        type: string
-      aws_secret_access_key_keeper_path:
-        required: true
-        type: string
-      terraform_keeper_key_keeper_path:
-        type: string
-        default: dSbGhN1_J1tqv-4dzrm8hw/field/password
       tf_dir:
         required: true
         type: string
@@ -35,15 +26,6 @@ jobs:
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         name: Checkout source code
-      - name: Retrieve secrets from Keeper
-        id: ksecrets
-        uses: Keeper-Security/ksm-action@37abbada28637b6478ba845e73d3f8b9676572fe # master
-        with:
-          keeper-secret-config: ${{ secrets.KSM_CONFIG }}
-          secrets: |-
-            ${{ inputs.aws_access_key_id_keeper_path }} > env:AWS_ACCESS_KEY_ID
-            ${{ inputs.aws_secret_access_key_keeper_path }} > env:AWS_SECRET_ACCESS_KEY
-            ${{ inputs.terraform_keeper_key_keeper_path }} > env:TF_KEEPER_KEY
       - name: Setup Terraform
         uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2
       - name: Tofu Init
@@ -55,4 +37,6 @@ jobs:
           cd ${{ inputs.tf_dir }}
           tofu apply -auto-approve -lock-timeout=120s -input=false ${{ inputs.cli_opts }}
         env:
-          KEEPER_CREDENTIAL: ${{ env.TF_KEEPER_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.CITYGEO_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.CITYGEO_AWS_SECRET_ACCESS_KEY }}
+          KEEPER_CREDENTIAL: ${{ secrets.TF_KEEPER_KEY }}
