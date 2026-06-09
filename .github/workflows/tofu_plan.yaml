@@ -3,15 +3,6 @@ name: Terraform Plan
 on:
   workflow_call:
     inputs:
-      aws_access_key_id_keeper_path:
-        required: true
-        type: string
-      aws_secret_access_key_keeper_path:
-        required: true
-        type: string
-      terraform_keeper_key_keeper_path:
-        type: string
-        default: dSbGhN1_J1tqv-4dzrm8hw/field/password
       tf_dir:
         required: true
         type: string

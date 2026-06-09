@@ -3,9 +3,6 @@ name: TFLint
 on:
   workflow_call:
     inputs:
-      #tf_token_keeper_path:
-      #  required: true
-      #  type: string
       parent_tf_dir:
         required: true
         type: string
