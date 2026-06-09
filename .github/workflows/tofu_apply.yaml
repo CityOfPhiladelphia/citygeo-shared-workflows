@@ -32,6 +32,9 @@ jobs:
         run: |
           cd ${{ inputs.tf_dir }}
           tofu init
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.CITYGEO_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.CITYGEO_AWS_SECRET_ACCESS_KEY }}
       - name: Tofu Apply
         run: |
           cd ${{ inputs.tf_dir }}
