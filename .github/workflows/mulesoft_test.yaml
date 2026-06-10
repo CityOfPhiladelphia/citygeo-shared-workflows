@@ -28,6 +28,11 @@ jobs:
             HGM2Arit4Ay4djbYppD3ww/field/login > env:CONNECTED_APP_CLIENT_ID
             HGM2Arit4Ay4djbYppD3ww/field/password > env:CONNECTED_APP_CLIENT_SECRET
 
+      - name: Show versions
+        run: |
+          java -version
+          mvn -version
+
       - name: Maven Test
         run: |
           mvn -B -ntp clean test
