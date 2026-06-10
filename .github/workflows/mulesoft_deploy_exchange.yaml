@@ -48,6 +48,11 @@ jobs:
           server-username: EXCHANGE_USERNAME
           server-password: EXCHANGE_PASSWORD
 
+      - name: Show versions
+        run: |
+          java -version
+          mvn -version
+
       - name: Retrieve Credentials from Keeper
         id: ksecrets
         uses: Keeper-Security/ksm-action@37abbada28637b6478ba845e73d3f8b9676572fe # master
