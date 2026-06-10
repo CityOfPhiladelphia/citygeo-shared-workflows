@@ -48,6 +48,13 @@ jobs:
           server-username: EXCHANGE_USERNAME
           server-password: EXCHANGE_PASSWORD
 
+      # Maven version 3.9+ is broken
+      # https://trailhead.salesforce.com/trailblazer-community/feed/0D5KX00000jA1ye0AC
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: 3.8.9
+
       - name: Show versions
         run: |
           java -version
