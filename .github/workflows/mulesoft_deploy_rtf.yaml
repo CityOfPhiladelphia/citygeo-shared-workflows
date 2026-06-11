@@ -47,6 +47,8 @@ jobs:
             exit 1
           fi
 
+      # Disclaimer: AI-Generated code. This parses the extraEnv input as a JSON, does
+      # some text processing, then outputs it to the env.
       - name: Establish extra env vars
         run: |
           # Safe process substitution prevents subshell issues
@@ -88,6 +90,9 @@ jobs:
             HGM2Arit4Ay4djbYppD3ww/field/login > env:CONNECTED_APP_CLIENT_ID
             HGM2Arit4Ay4djbYppD3ww/field/password > env:CONNECTED_APP_CLIENT_SECRET
 
+      # Disclaimer: AI-Generated code. This parses Github secrets a JSON, does
+      # some text processing, masks the variable, then outputs it to the env.
+      # I'm sure you can understand why I didn't want to write this by hand...
       - name: Add specified Github Actions secrets to env
         env:
           # Pass the entire inherited secrets context as a JSON string to Bash

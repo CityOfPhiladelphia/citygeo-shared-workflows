@@ -13,6 +13,9 @@ jobs:
       - name: Checkout this repo
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
+      # Disclaimer: AI-Generated code. This just does a lot of parsing
+      # and error / string validation on your pom.xml. It has been
+      # modified a bit
       - name: Get pom.xml parameters for this branch
         id: pomxml
         run: |
