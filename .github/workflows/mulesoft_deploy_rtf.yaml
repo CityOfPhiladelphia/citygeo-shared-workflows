@@ -6,6 +6,10 @@ on:
       MS_ENV:
         required: true
         type: string
+      extraEnv:
+        required: false
+        type: string
+        default: "{}"
 
 concurrency:
   group: deploy-rtf-${{ inputs.MS_ENV }}
@@ -38,6 +42,16 @@ jobs:
             echo "Invalid mulesoft env"
             exit 1
           fi
+
+      - name: Establish extra env vars
+        run: |
+          # Safe process substitution prevents subshell issues
+          while IFS=$'\t' read -r key value; do
+            echo "Setting env var: ${key}=${value}"
+            
+            # Append directly to GITHUB_ENV
+            echo "${key}=${value}" >> "$GITHUB_ENV"
+          done < <(echo '${{ inputs.extraEnv }}' | jq -r 'to_entries[] | "\(.key)\t\(.value)"')
 
       - name: Set up JDK
         uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
