@@ -96,7 +96,5 @@ jobs:
         run: |
           mvn -B -ntp clean test
         env:
-          CONNECTED_APP_CLIENT_ID: ${{ env.CONNECTED_APP_CLIENT_ID }}
-          CONNECTED_APP_CLIENT_SECRET: ${{ env.CONNECTED_APP_CLIENT_SECRET }}
           EXCHANGE_USERNAME: ~~~Client~~~
           EXCHANGE_PASSWORD: ${{ env.CONNECTED_APP_CLIENT_ID }}~?~${{ env.CONNECTED_APP_CLIENT_SECRET }}
