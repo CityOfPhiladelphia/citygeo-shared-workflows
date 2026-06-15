@@ -2,7 +2,15 @@
 name: Maven Test
 on:
   workflow_call:
-
+    inputs:
+      extraEnv:
+        required: false
+        type: string
+        default: "{}"
+      secretsToEnv:
+        required: false
+        type: string
+        default: ""
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -18,6 +26,18 @@ jobs:
           server-id: Repository
           server-username: EXCHANGE_USERNAME
           server-password: EXCHANGE_PASSWORD
+
+      # Disclaimer: AI-Generated code. This parses the extraEnv input as a JSON, does
+      # some text processing, then outputs it to the env.
+      - name: Establish extra env vars
+        run: |
+          # Safe process substitution prevents subshell issues
+          while IFS=$'\t' read -r key value; do
+            echo "Setting env var: ${key}=${value}"
+
+            # Append directly to GITHUB_ENV
+            echo "${key}=${value}" >> "$GITHUB_ENV"
+          done < <(echo '${{ inputs.extraEnv }}' | jq -r 'to_entries[] | "\(.key)\t\(.value)"')
 
       - name: Retrieve Credentials from Keeper
         id: ksecrets
@@ -39,6 +59,38 @@ jobs:
         run: |
           java -version
           mvn -version
+
+      # Disclaimer: AI-Generated code. This parses Github secrets a JSON, does
+      # some text processing, masks the variable, then outputs it to the env.
+      # I'm sure you can understand why I didn't want to write this by hand...
+      - name: Add specified Github Actions secrets to env
+        env:
+          # Pass the entire inherited secrets context as a JSON string to Bash
+          ALL_SECRETS_JSON: ${{ toJson(secrets) }}
+        run: |
+          KEYS_LIST="${{ inputs.secretsToEnv }}"
+
+          # Loop through the requested keys using jq to pull from the full secrets JSON
+          echo "$KEYS_LIST" | tr ',' '\n' | sed 's/ //g' | while read -r key; do
+            # Skip empty lines
+            [ -z "$key" ] && continue
+
+            # Extract the specific secret value using jq
+            value=$(echo "$ALL_SECRETS_JSON" | jq -r --arg k "$key" '.[$k]')
+
+            # If the secret doesn't exist or is null, skip it
+            if [ "$value" = "null" ] || [ -z "$value" ]; then
+              echo "Warning: Secret '$key' not found in inherited secrets."
+              continue
+            fi
+
+            # 1. Mask it just to be perfectly safe
+            echo "::add-mask::$value"
+
+            # 2. Append to GITHUB_ENV
+            echo "Exporting $key to GITHUB_ENV..."
+            echo "${key}=${value}" >> "$GITHUB_ENV"
+          done
 
       - name: Maven Test
         run: |
