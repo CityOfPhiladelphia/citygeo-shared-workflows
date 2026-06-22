@@ -79,14 +79,20 @@ jobs:
           echo "Command exited with code: $EXIT_CODE"
 
           # 2. Decide what to do based on the code
-          if [ "$EXIT_CODE" -eq 0 ] || [ "$EXIT_CODE" -eq 2 ]; then
+          if [ "$EXIT_CODE" -eq 0 ]; then
             echo "Exit code is acceptable ($EXIT_CODE). Moving on..."
-            
+            echo "This version is already deployed to Exchange. Skipping deploy step."
+
             # Save it to outputs so the NEXT step knows whether it was a 0 or a 2
+            echo "cmd_status=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+          elif [ "$EXIT_CODE" -eq 2 ]; then
+            echo "Exit code is acceptable ($EXIT_CODE). Moving on..."
+            echo "This version is NOT deployed to Exchange"
+
             echo "cmd_status=$EXIT_CODE" >> "$GITHUB_OUTPUT"
           else
             echo "CRITICAL: Unexpected exit code ($EXIT_CODE)! Failing the step."
-            
+
             # Explicitly exit the shell with the bad code to fail this GitHub Actions step
             exit $EXIT_CODE
           fi
