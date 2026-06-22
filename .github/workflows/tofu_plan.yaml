@@ -12,7 +12,11 @@ on:
         type: string
         default: " "
     secrets:
-      KSM_CONFIG:
+      CITYGEO_AWS_ACCESS_KEY_ID:
+        required: true
+      CITYGEO_AWS_SECRET_ACCESS_KEY:
+        required: true
+      TF_KEEPER_KEY:
         required: true
 
 jobs:
@@ -66,7 +70,7 @@ jobs:
 
             const tfModifyIndex = process.env.PLAN.indexOf("Tofu will perform the following actions:")
             if (tfModifyIndex >= 0) {
-              processedPlan = process.env.PLAN.slice(tfModifyIndex) 
+              processedPlan = process.env.PLAN.slice(tfModifyIndex)
             }
 
             const output = `### Tofu plan output for \`${process.env.TF_DIR}\`
