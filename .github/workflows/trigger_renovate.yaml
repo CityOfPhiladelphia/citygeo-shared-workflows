@@ -1,0 +1,30 @@
+---
+name: Trigger Renovate
+on:
+  workflow_call:
+    inputs:
+      target_repo:
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  trigger-renovate:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.deploy_env }}
+    steps:
+      - name: Generate a github token
+        id: generate-gh-app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          app-id: ${{ secrets.CITYGEO_BOT_GH_APP_ID }}
+          private-key: ${{ secrets.CITYGEO_BOT_GH_APP_PRIVATE_KEY }}
+          owner: CityOfPhiladelphia
+      - name: Repository Dispatch
+        uses: peter-evans/repository-dispatch@v4
+        with:
+          repository: CityOfPhiladelphia/citygeo-renovate
+          token: ${{ steps.generate-gh-app-token.outputs.token }}
+          event-type: renovate
+          client-payload: '{"target_repo": "${{ github.event.inputs.target_repo }}"}'
