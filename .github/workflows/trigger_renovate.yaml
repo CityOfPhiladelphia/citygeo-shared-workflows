@@ -27,4 +27,4 @@ jobs:
           repository: CityOfPhiladelphia/citygeo-renovate
           token: ${{ steps.generate-gh-app-token.outputs.token }}
           event-type: renovate
-          client-payload: '{"target_repo": "${{ github.event.inputs.target_repo }}"}'
+          client-payload: '{"target_repo": "${{ inputs.target_repo }}"}'
