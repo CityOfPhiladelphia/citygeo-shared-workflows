@@ -44,7 +44,7 @@ jobs:
             ${{ inputs.aws_secret_access_key_keeper_path }} > env:AWS_SECRET_ACCESS_KEY
             ${{ inputs.terraform_keeper_key_keeper_path }} > env:TF_KEEPER_KEY
       - name: Setup Nodejs
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: lts/*
           check-latest: true
