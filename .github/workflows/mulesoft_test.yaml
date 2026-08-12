@@ -41,7 +41,7 @@ jobs:
 
       - name: Retrieve Credentials from Keeper
         id: ksecrets
-        uses: Keeper-Security/ksm-action@54024615476123015b628a22341850b2087ab297 # master
+        uses: Keeper-Security/ksm-action@310b9e6bd9d95e6fd49881e72c35a0a23cf5a0f0 # master
         with:
           keeper-secret-config: ${{ secrets.KSM_CONFIG }}
           secrets: |-
