@@ -42,6 +42,15 @@ jobs:
           elif [[ "$MS_ENV" == "PROD" ]]; then
             echo "MS_TARGET=eks-rtf-prod" >> $GITHUB_OUTPUT
             echo "MS_RTF_URL=https://rtf-prod.phila.gov" >> $GITHUB_OUTPUT
+          elif [[ "$MS_ENV" == "SECURE-DEV" ]]; then
+            echo "MS_TARGET=rtf-secure-dev" >> $GITHUB_OUTPUT
+            echo "MS_RTF_URL=https://rtf-dev.citygeo-secure.phila.city" >> $GITHUB_OUTPUT
+          elif [[ "$MS_ENV" == "SECURE-TEST" ]]; then
+            echo "MS_TARGET=rtf-secure-test" >> $GITHUB_OUTPUT
+            echo "MS_RTF_URL=https://rtf-test.citygeo-secure.phila.city" >> $GITHUB_OUTPUT
+          elif [[ "$MS_ENV" == "SECURE-PROD" ]]; then
+            echo "MS_TARGET=rtf-secure-prod" >> $GITHUB_OUTPUT
+            echo "MS_RTF_URL=https://rtf-prod.citygeo-secure.phila.city" >> $GITHUB_OUTPUT
           else
             echo "Invalid mulesoft env"
             exit 1
