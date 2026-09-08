@@ -14,6 +14,11 @@ on:
         required: false
         type: string
         default: ""
+      connectedAppKeeperSecretId:
+        description: Keeper Secret ID for the conncted app creds
+        type: string
+        default: "HGM2Arit4Ay4djbYppD3ww"
+        required: false
 
 concurrency:
   group: deploy-rtf-${{ inputs.MS_ENV }}
@@ -96,8 +101,8 @@ jobs:
         with:
           keeper-secret-config: ${{ secrets.KSM_CONFIG }}
           secrets: |-
-            HGM2Arit4Ay4djbYppD3ww/field/login > env:CONNECTED_APP_CLIENT_ID
-            HGM2Arit4Ay4djbYppD3ww/field/password > env:CONNECTED_APP_CLIENT_SECRET
+            ${{ inputs.connectedAppKeeperSecretId }}/field/login > env:CONNECTED_APP_CLIENT_ID
+            ${{ inputs.connectedAppKeeperSecretId }}/field/password > env:CONNECTED_APP_CLIENT_SECRET
 
       # Disclaimer: AI-Generated code. This parses Github secrets a JSON, does
       # some text processing, masks the variable, then outputs it to the env.

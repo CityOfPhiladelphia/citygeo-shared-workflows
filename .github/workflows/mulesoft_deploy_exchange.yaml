@@ -3,6 +3,12 @@ name: Maven Deploy to Anypoint Exchange
 
 on:
   workflow_call:
+    inputs:
+      connectedAppKeeperSecretId:
+        description: Keeper Secret ID for the conncted app creds
+        type: string
+        default: "HGM2Arit4Ay4djbYppD3ww"
+        required: false
 
 concurrency:
   group: deploy-exchange
@@ -66,8 +72,8 @@ jobs:
         with:
           keeper-secret-config: ${{ secrets.KSM_CONFIG }}
           secrets: |-
-            HGM2Arit4Ay4djbYppD3ww/field/login > env:CONNECTED_APP_CLIENT_ID
-            HGM2Arit4Ay4djbYppD3ww/field/password > env:CONNECTED_APP_CLIENT_SECRET
+            ${{ inputs.connectedAppKeeperSecretId }}/field/login > env:CONNECTED_APP_CLIENT_ID
+            ${{ inputs.connectedAppKeeperSecretId }}/field/password > env:CONNECTED_APP_CLIENT_SECRET
 
       - name: Check if current version deployed
         id: check_deployed
