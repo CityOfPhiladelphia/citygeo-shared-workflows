@@ -19,6 +19,8 @@ Essentially we are combining the Anypoint documentation for [deploying to RTF fr
 
 Please refer to the [sample pom.xml](https://github.com/CityOfPhiladelphia/mulesoft-sample-rtf-deploy/blob/main/pom.xml) which has plenty of comments explaining all the parameters you need to add and their values.
 
+If you are deploying to the secure environment, refer to this [sample pom.xml instead](https://github.com/CityOfPhiladelphia/mule-secure-rtf-sample/blob/main/pom.xml)
+
 Basic overview of what you need to change:
 
 1. Set `groupId` to the business group ID that the app will be deployed to.
@@ -35,8 +37,9 @@ Basic overview of what you need to change:
 1. Add OIT-Mulesoft to "Collaborators and teams" with at least write permissions.
 1. Add an environment for "dev", "test", and "prod", spelled that way exactly
    1. Leave "dev" and "test" at default values.
-   1. For "prod" environment, enable "Required reviewers" and select `CityOfPhiladelphia/oit-mulesoft`
-   1. For "prod" environment, change "Deployment branches and tags" to "Selected branches and tags", then add "main" as the branch in the section below.
+   1. Enable required review for deployment to prod environment (you can hold off on this step if you are in early development)
+      1. For "prod" environment, enable "Required reviewers" and select `CityOfPhiladelphia/oit-mulesoft`
+      1. For "prod" environment, change "Deployment branches and tags" to "Selected branches and tags", then add "main" as the branch in the section below.
 1. Add Keeper Secret
    1. Navigate to secrets and variables -> Actions
    1. Select "New repository secret"
