@@ -49,7 +49,9 @@ Basic overview of what you need to change:
 ### Github Repo Folder Structure
 
 1. At the root of your git project, create a folder called `.github`, then a subfolder called `.github/workflows`
-1. Copy these two files into that folder: [deploy.yaml](https://github.com/CityOfPhiladelphia/mulesoft-sample-rtf-deploy/blob/main/.github/workflows/deploy.yaml) and [pr.yaml](https://github.com/CityOfPhiladelphia/mulesoft-sample-rtf-deploy/blob/main/.github/workflows/pr.yaml). Ideally these files would never change once this is stable, but you may be instructed to make adjustments in the future.
+1. Copy these two files into that folder. Ideally these files would never change once this is stable, but you may be instructed to make adjustments in the future:
+   1. For deploying to the regular / non-CJIS enviornment: [deploy.yaml](https://github.com/CityOfPhiladelphia/mulesoft-sample-rtf-deploy/blob/main/.github/workflows/deploy.yaml) and [pr.yaml](https://github.com/CityOfPhiladelphia/mulesoft-sample-rtf-deploy/blob/main/.github/workflows/pr.yaml)
+   1. For deploying to the secure / CJIS environment: [deploy.yaml](https://github.com/CityOfPhiladelphia/mule-secure-rtf-sample/blob/main/.github/workflows/deploy.yaml) and [pr.yaml](https://github.com/CityOfPhiladelphia/mule-secure-rtf-sample/blob/main/.github/workflows/pr.yaml)
 1. **Important**: If you are deploying an existing / already deployed app, comment out entirely (using the '#' character) the `deploy-test` and `deploy-prod` jobs in "deploy.yaml", this ensures you don't accidentally overwrite prod or test while first setting up this pipeline. Then, once dev seems to work well, you can uncomment those lines.
 
 ## Advanced Features
