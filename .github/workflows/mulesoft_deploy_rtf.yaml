@@ -19,6 +19,11 @@ on:
         type: string
         default: "HGM2Arit4Ay4djbYppD3ww"
         required: false
+      muleEEKeeperSecretId:
+        description: Keeper Secret ID for the conncted app creds
+        type: string
+        default: "0QuKUfpty8Y8DvkebYqeuw"
+        required: false
 
 concurrency:
   group: deploy-rtf-${{ inputs.MS_ENV }}
@@ -79,9 +84,11 @@ jobs:
           distribution: "zulu"
           java-version: 17
           # cache: "maven"
-          server-id: Repository
-          server-username: EXCHANGE_USERNAME
-          server-password: EXCHANGE_PASSWORD
+          mvn-server-credentials: |
+            Repository:EXCHANGE_USERNAME:EXCHANGE_PASSWORD
+            MuleRepository:MULE_EE_USERNAME:MULE_EE_PASSWORD
+          mvn-repositories: |
+            MuleRepository:https://repository.mulesoft.org/nexus-ee/content/repositories/releases-ee/:true
 
       # Maven version 3.9+ is broken
       # https://trailhead.salesforce.com/trailblazer-community/feed/0D5KX00000jA1ye0AC
@@ -94,15 +101,6 @@ jobs:
         run: |
           java -version
           mvn -version
-
-      - name: Retrieve Credentials from Keeper
-        id: ksecrets
-        uses: Keeper-Security/ksm-action@310b9e6bd9d95e6fd49881e72c35a0a23cf5a0f0 # master
-        with:
-          keeper-secret-config: ${{ secrets.KSM_CONFIG }}
-          secrets: |-
-            ${{ inputs.connectedAppKeeperSecretId }}/field/login > env:CONNECTED_APP_CLIENT_ID
-            ${{ inputs.connectedAppKeeperSecretId }}/field/password > env:CONNECTED_APP_CLIENT_SECRET
 
       # Disclaimer: AI-Generated code. This parses Github secrets a JSON, does
       # some text processing, masks the variable, then outputs it to the env.
@@ -136,12 +134,25 @@ jobs:
             echo "${key}=${value}" >> "$GITHUB_ENV"
           done
 
+      - name: Retrieve Credentials from Keeper
+        id: ksecrets
+        uses: Keeper-Security/ksm-action@310b9e6bd9d95e6fd49881e72c35a0a23cf5a0f0 # master
+        with:
+          keeper-secret-config: ${{ secrets.KSM_CONFIG }}
+          secrets: |-
+            ${{ inputs.connectedAppKeeperSecretId }}/field/login > env:CONNECTED_APP_CLIENT_ID
+            ${{ inputs.connectedAppKeeperSecretId }}/field/password > env:CONNECTED_APP_CLIENT_SECRET
+            ${{ inputs.muleEEKeeperSecretId }}/field/login > env:MULE_EE_USERNAME
+            ${{ inputs.muleEEKeeperSecretId}}/field/password > env:MULE_EE_PASSWORD
+
       - name: Deploy to RTF
         run: |
           mvn -B -ntp clean deploy -DskipTests -DmuleDeploy
         env:
           EXCHANGE_USERNAME: ~~~Client~~~
           EXCHANGE_PASSWORD: ${{ env.CONNECTED_APP_CLIENT_ID }}~?~${{ env.CONNECTED_APP_CLIENT_SECRET }}
+          MULE_EE_USERNAME: ${{ env.MULE_EE_USERNAME }}
+          MULE_EE_PASSWORD: ${{ env.MULE_EE_PASSWORD }}
           MS_ENV: ${{ inputs.MS_ENV }}
           MS_TARGET: ${{ steps.msparams.outputs.MS_TARGET }}
           MS_RTF_URL: ${{ steps.msparams.outputs.MS_RTF_URL }}
