@@ -28,9 +28,12 @@ jobs:
         with:
           distribution: "zulu"
           java-version: 17
-          server-id: Repository
-          server-username: EXCHANGE_USERNAME
-          server-password: EXCHANGE_PASSWORD
+          # cache: "maven"
+          mvn-server-credentials: |
+            Repository:EXCHANGE_USERNAME:EXCHANGE_PASSWORD
+            MuleRepository:MULE_EE_USERNAME:MULE_EE_PASSWORD
+          mvn-repositories: |
+            MuleRepository:https://repository.mulesoft.org/nexus-ee/content/repositories/releases-ee/:true
 
       # Disclaimer: AI-Generated code. This parses the extraEnv input as a JSON, does
       # some text processing, then outputs it to the env.
@@ -52,6 +55,8 @@ jobs:
           secrets: |-
             ${{ inputs.connectedAppKeeperSecretId }}/field/login > env:CONNECTED_APP_CLIENT_ID
             ${{ inputs.connectedAppKeeperSecretId }}/field/password > env:CONNECTED_APP_CLIENT_SECRET
+            ${{ inputs.muleEEKeeperSecretId }}/field/login > env:MULE_EE_USERNAME
+            ${{ inputs.muleEEKeeperSecretId }}/field/password > env:MULE_EE_PASSWORD
 
       # Maven version 3.9+ is broken
       # https://trailhead.salesforce.com/trailblazer-community/feed/0D5KX00000jA1ye0AC
@@ -103,3 +108,5 @@ jobs:
         env:
           EXCHANGE_USERNAME: ~~~Client~~~
           EXCHANGE_PASSWORD: ${{ env.CONNECTED_APP_CLIENT_ID }}~?~${{ env.CONNECTED_APP_CLIENT_SECRET }}
+          MULE_EE_USERNAME: ${{ env.MULE_EE_USERNAME }}
+          MULE_EE_PASSWORD: ${{ env.MULE_EE_PASSWORD }}
