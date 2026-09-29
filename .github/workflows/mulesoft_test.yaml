@@ -16,6 +16,11 @@ on:
         type: string
         default: "HGM2Arit4Ay4djbYppD3ww"
         required: false
+      muleEEKeeperSecretId:
+        description: Keeper Secret ID for the conncted app creds
+        type: string
+        default: "0QuKUfpty8Y8DvkebYqeuw"
+        required: false
 jobs:
   test:
     runs-on: ubuntu-latest
