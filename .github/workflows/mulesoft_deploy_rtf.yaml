@@ -143,7 +143,7 @@ jobs:
             ${{ inputs.connectedAppKeeperSecretId }}/field/login > env:CONNECTED_APP_CLIENT_ID
             ${{ inputs.connectedAppKeeperSecretId }}/field/password > env:CONNECTED_APP_CLIENT_SECRET
             ${{ inputs.muleEEKeeperSecretId }}/field/login > env:MULE_EE_USERNAME
-            ${{ inputs.muleEEKeeperSecretId}}/field/password > env:MULE_EE_PASSWORD
+            ${{ inputs.muleEEKeeperSecretId }}/field/password > env:MULE_EE_PASSWORD
 
       - name: Deploy to RTF
         run: |
