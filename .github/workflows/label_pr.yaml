@@ -13,12 +13,19 @@ on:
 jobs:
   label:
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
     steps:
+      - name: Generate a github token
+        id: generate-gh-app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          app-id: ${{ secrets.CITYGEO_BOT_GH_APP_ID }}
+          private-key: ${{ secrets.CITYGEO_BOT_GH_APP_PRIVATE_KEY }}
+          owner: CityOfPhiladelphia
+
       - name: Add label
         uses: actions/github-script@v7
         with:
+          github-token: ${{ steps.generate-gh-app-token.outputs.token }}
           script: |
             const authorLogin = "${{ inputs.author-login }}";
 
