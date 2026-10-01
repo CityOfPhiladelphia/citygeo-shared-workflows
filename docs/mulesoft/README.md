@@ -90,7 +90,7 @@ deploy-dev:
 ```xml
 <runtimeFabricDeployment>
   <secureProperties>
-    <PHILA_API_KEY>${env.TEST_KEEPER_RECORD}</PHILA_API_KEY>
+    <TEST_PROP>${env.TEST_KEEPER_RECORD}</TEST_PROP>
   </secureProperties>
 </runtimeFabricDeployment>
 ```
