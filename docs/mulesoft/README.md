@@ -58,6 +58,8 @@ Basic overview of what you need to change:
 
 ### Passing Secrets into pom.xml
 
+Your mule app may need a secret provided to it, such as an API key, database password, etc.
+
 #### Option A (Recommended) - Retrieving secret from Keeper
 
 1. Insert the secret into the proper Keeper shared vault
@@ -96,8 +98,6 @@ deploy-dev:
 ```
 
 #### Option B - Retrieving secret from Github Actions Secrets
-
-Your mule app may need a secret provided to it, such as an API key, database password, etc.
 
 1. Add the secret to Github Actions secrets
    1. Navigate to Settings --> Secrets and variables -> Actions
