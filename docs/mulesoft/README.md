@@ -58,6 +58,45 @@ Basic overview of what you need to change:
 
 ### Passing Secrets into pom.xml
 
+#### Option A (Recommended) - Retrieving secret from Keeper
+
+1. Insert the secret into the proper Keeper shared vault
+   1. `CityGeo-MuleSoft (76TlMQ8DHGTPNEOVK-_bUw)` for non-CJIS
+   1. `CityGeo-MuleSoft-Secure-GHActions (oKityiSbF9vBn2XyQI_J2g)` for CJIS
+1. Update the `additionalKeeperSecrets` workflow input variable using the syntax from [Keeper docs](https://docs.keeper.io/keeperpam/secrets-manager/integrations/github-actions) and pipe it into `env:{NAME}`
+1. Insert each secret name into the pom.xml as environment variables within the `<secureProperties>` section
+   1. Navigate to pom.xml
+   1. Add the secret names. See example below
+
+##### Example - Record UID JHJhsnamfyCjH52crutNVQ
+
+`deploy.yaml` snippet
+
+```yaml
+deploy-dev:
+  name: Deploy to Dev
+  needs: deploy-exchange
+  if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.environment == 'dev') }}
+  uses: CityOfPhiladelphia/citygeo-shared-workflows/.github/workflows/mulesoft_deploy_rtf.yaml@main
+  secrets: inherit
+  with:
+    MS_ENV: SECURE-DEV
+    additionalKeeperSecrets: |-
+      JHJhsnamfyCjH52crutNVQ/field/login > env:TEST_KEEPER_RECORD
+```
+
+`pom.xml` snippet
+
+```xml
+<runtimeFabricDeployment>
+  <secureProperties>
+    <PHILA_API_KEY>${env.TEST_KEEPER_RECORD}</PHILA_API_KEY>
+  </secureProperties>
+</runtimeFabricDeployment>
+```
+
+#### Option B - Retrieving secret from Github Actions Secrets
+
 Your mule app may need a secret provided to it, such as an API key, database password, etc.
 
 1. Add the secret to Github Actions secrets
@@ -72,7 +111,7 @@ Your mule app may need a secret provided to it, such as an API key, database pas
    1. Navigate to pom.xml
    1. Add the secret names. See example below
 
-#### Example: You added a secret named "PHILA_API_KEY" and one named "PHILA_DB_PASSWORD"
+##### Example: You added a secret named "PHILA_API_KEY" and one named "PHILA_DB_PASSWORD"
 
 `deploy.yaml` snippet
 
