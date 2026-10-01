@@ -10,7 +10,5 @@
   "assignees": [
     "Weastie"
   ],
-  "automerge": true,
-  "automergeType": "pr",
   "ignoreTests": true
 }
