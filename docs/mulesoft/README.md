@@ -195,3 +195,17 @@ deploy-prod:
   </properties>
 </runtimeFabricDeployment>
 ```
+
+### Override Maven version
+
+```yaml
+deploy-dev:
+  name: Deploy to Dev
+  needs: deploy-exchange
+  if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.environment == 'dev') }}
+  uses: CityOfPhiladelphia/citygeo-shared-workflows/.github/workflows/mulesoft_deploy_rtf.yaml@main
+  secrets: inherit
+  with:
+    MS_ENV: DEV
+    mavenVersion: "3.9.16"
+```
