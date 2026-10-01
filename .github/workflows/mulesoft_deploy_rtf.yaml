@@ -6,6 +6,11 @@ on:
       MS_ENV:
         required: true
         type: string
+      mavenVersion:
+        description: Maven Version
+        type: string
+        default: "3.10.0"
+        required: false
       extraEnv:
         required: false
         type: string
@@ -100,7 +105,7 @@ jobs:
       - name: Set up Maven
         uses: stCarolas/setup-maven@d6af6abeda15e98926a57b5aa970a96bb37f97d1 # v5
         with:
-          maven-version: 3.10.0
+          maven-version: ${{ inputs.mavenVersion }}
 
       - name: Show versions
         run: |
