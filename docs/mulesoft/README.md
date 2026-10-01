@@ -19,7 +19,7 @@ Essentially we are combining the Anypoint documentation for [deploying to RTF fr
 
 Please refer to the [sample pom.xml](https://github.com/CityOfPhiladelphia/mulesoft-sample-rtf-deploy/blob/main/pom.xml) which has plenty of comments explaining all the parameters you need to add and their values.
 
-If you are deploying to the secure environment, refer to this [sample pom.xml instead](https://github.com/CityOfPhiladelphia/mule-secure-rtf-sample/blob/main/pom.xml)
+If you are deploying to the secure environment, refer to the [sample pom.xml for CJIS](https://github.com/CityOfPhiladelphia/mule-secure-rtf-sample/blob/main/pom.xml)
 
 Basic overview of what you need to change:
 
