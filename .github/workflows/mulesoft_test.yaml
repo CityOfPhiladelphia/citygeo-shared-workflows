@@ -21,6 +21,11 @@ on:
         type: string
         default: "0QuKUfpty8Y8DvkebYqeuw"
         required: false
+      additionalKeeperSecrets:
+        description: Additional Keeper secrets to pull
+        type: string
+        default: ""
+        required: false
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -62,6 +67,7 @@ jobs:
             ${{ inputs.connectedAppKeeperSecretId }}/field/password > env:CONNECTED_APP_CLIENT_SECRET
             ${{ inputs.muleEEKeeperSecretId }}/field/login > env:MULE_EE_USERNAME
             ${{ inputs.muleEEKeeperSecretId }}/field/password > env:MULE_EE_PASSWORD
+            ${{ inputs.additionalKeeperSecrets }}
 
       # Maven version 3.9+ is broken
       # https://trailhead.salesforce.com/trailblazer-community/feed/0D5KX00000jA1ye0AC

@@ -14,6 +14,11 @@ on:
         type: string
         default: "0QuKUfpty8Y8DvkebYqeuw"
         required: false
+      additionalKeeperSecrets:
+        description: Additional Keeper secrets to pull
+        type: string
+        default: ""
+        required: false
 
 concurrency:
   group: deploy-exchange
@@ -83,6 +88,7 @@ jobs:
             ${{ inputs.connectedAppKeeperSecretId }}/field/password > env:CONNECTED_APP_CLIENT_SECRET
             ${{ inputs.muleEEKeeperSecretId }}/field/login > env:MULE_EE_USERNAME
             ${{ inputs.muleEEKeeperSecretId }}/field/password > env:MULE_EE_PASSWORD
+            ${{ inputs.additionalKeeperSecrets }}
 
       - name: Check if current version deployed
         id: check_deployed
