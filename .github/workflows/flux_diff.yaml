@@ -1,0 +1,418 @@
+---
+# Renders each cluster offline from the PR branch and the base branch with
+# flate, then comments the diff of the rendered manifests on the PR.
+# See docs/flux-diff/README.md for usage.
+name: Flux Diff
+
+on:
+  workflow_call:
+    inputs:
+      clusters:
+        required: true
+        type: string
+        description: JSON list of cluster names to diff, e.g. '["dev", "prod"]'
+      sync_path:
+        required: true
+        type: string
+        description: >-
+          Path the root Flux Kustomization syncs, relative to the repo root.
+          {cluster} is replaced with each cluster name, e.g. clusters/{cluster}
+      flate_args:
+        required: false
+        type: string
+        default: ""
+        description: Extra flags for flate build, separated by spaces
+      placeholder_configmaps:
+        required: false
+        type: string
+        default: ""
+        description: >-
+          ConfigMaps that only get data in the cluster, one name=file per
+          line. Every key a HelmRelease reads from them is filled with a
+          placeholder.
+      rendered_view:
+        required: false
+        type: boolean
+        default: true
+        description: >-
+          Also diff the objects HelmReleases render into. Turn off for repos
+          without HelmReleases.
+      prep_script:
+        required: false
+        type: string
+        default: ""
+        description: >-
+          Script from the PR branch to run in each checkout before rendering,
+          for repo-specific setup
+    secrets:
+      ECR_AWS_ACCESS_KEY_ID:
+        required: false
+      ECR_AWS_SECRET_ACCESS_KEY:
+        required: false
+
+env:
+  # renovate: datasource=github-releases depName=homeport/dyff
+  DYFF_VERSION: "1.12.0"
+
+jobs:
+  diff:
+    name: diff (${{ matrix.cluster }})
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+    strategy:
+      fail-fast: false
+      matrix:
+        cluster: ${{ fromJSON(inputs.clusters) }}
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: head
+
+      - name: Checkout base branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+
+      # Installs the flate version matching the pinned release SHA. The cache
+      # keeps downloaded charts between runs so cold pulls rarely hit
+      # registry rate limits.
+      - name: Install flate
+        uses: home-operations/flate/action@631b76b69c4e58c6f4d1cb01e23616fa61aebafa # v0.6.5
+        with:
+          cache: true
+
+      - name: Install dyff
+        run: |
+          set -euo pipefail
+          bin="$RUNNER_TEMP/bin"
+          mkdir -p "$bin"
+          cd "$RUNNER_TEMP"
+
+          # Checksums come from the release so Renovate can bump the version
+          # alone. This catches corrupt downloads, not a tampered release.
+          dyff_tar="dyff_${DYFF_VERSION}_linux_amd64.tar.gz"
+          dyff_url="https://github.com/homeport/dyff/releases/download/v${DYFF_VERSION}"
+          curl -fsSLO "$dyff_url/$dyff_tar"
+          curl -fsSLo dyff-checksums.txt "$dyff_url/checksums.txt"
+          grep " $dyff_tar\$" dyff-checksums.txt | sha256sum -c -
+          tar -xzf "$dyff_tar" -C "$bin" dyff
+
+          echo "$bin" >> "$GITHUB_PATH"
+
+      # Fills in what only exists in the cluster so flate can render offline.
+      # Only touches the throwaway checkouts, never applied to a cluster.
+      - name: Prepare checkouts
+        env:
+          CLUSTER: ${{ matrix.cluster }}
+          SYNC_PATH: ${{ inputs.sync_path }}
+          PLACEHOLDER_CONFIGMAPS: ${{ inputs.placeholder_configmaps }}
+          PREP_SCRIPT: ${{ inputs.prep_script }}
+        run: |
+          set -euo pipefail
+
+          sync_path="${SYNC_PATH//'{cluster}'/$CLUSTER}"
+          sync_path="${sync_path#./}"
+          if [ ! -d "head/$sync_path" ]; then
+            echo "::error::sync_path '$sync_path' doesn't exist on the PR branch."
+            exit 1
+          fi
+
+          # Lists YAML files under the current directory that contain <text>.
+          #
+          # Usage: find_yaml <text>
+          find_yaml() {
+            grep -rlF --include='*.yaml' --include='*.yml' \
+              --exclude-dir=.git --exclude-dir=.flate -- "$1" . || true
+          }
+
+          # Usage: prepare <checkout-dir>
+          prepare() {
+            cd "$1"
+
+            # The root Flux Kustomization usually comes from flux bootstrap,
+            # a FluxInstance, or another repo, so it isn't a file in this
+            # one. Generate it so flate has an entrypoint at .flate/<cluster>.
+            mkdir -p ".flate/$CLUSTER"
+            ROOT_PATH="./$sync_path" yq -n '
+              .apiVersion = "kustomize.toolkit.fluxcd.io/v1"
+              | .kind = "Kustomization"
+              | .metadata = {"name": "flux-system", "namespace": "flux-system"}
+              | .spec = {
+                  "interval": "10m",
+                  "path": strenv(ROOT_PATH),
+                  "prune": true,
+                  "sourceRef": {"kind": "GitRepository", "name": "flux-system"}
+                }
+            ' > ".flate/$CLUSTER/flux-system.yaml"
+
+            # Some ConfigMaps are only filled in by controllers in the
+            # cluster, such as ACK FieldExports. Fill in a placeholder for
+            # every key a HelmRelease reads from them.
+            while IFS='=' read -r name file; do
+              [ -n "$name" ] || continue
+              if [ ! -f "$file" ]; then
+                echo "::error::placeholder_configmaps: '$file' for '$name' doesn't exist in $1."
+                exit 1
+              fi
+              keys=$(
+                for f in $(find_yaml "$name"); do
+                  NAME="$name" yq '
+                    select(.kind == "HelmRelease")
+                    | .spec.valuesFrom[]?
+                    | select(.kind == "ConfigMap" and .name == strenv(NAME))
+                    | .valuesKey
+                  ' "$f"
+                done | grep -v -e '^---$' -e '^$' | sort -u || true
+              )
+              for key in $keys; do
+                NAME="$name" KEY="$key" yq -i '
+                  (select(.kind == "ConfigMap" and .metadata.name == strenv(NAME)) | .data[strenv(KEY)]) = "ci-placeholder"
+                ' "$file"
+              done
+            done <<< "$PLACEHOLDER_CONFIGMAPS"
+
+            # GitHubPullRequest input providers need the GitHub API. Pre-bake
+            # one fake pull request so the ResourceSet templates still render.
+            for f in $(find_yaml 'type: GitHubPullRequest'); do
+              yq -i '
+                (select(.kind == "ResourceSetInputProvider" and .spec.type == "GitHubPullRequest") | .status.exportedInputs) =
+                  [{"id": "0", "branch": "ci-placeholder", "sha": "0000000000000000000000000000000000000000", "title": "CI placeholder"}]
+              ' "$f"
+            done
+
+            # Use the PR branch's copy for both sides so the base branch
+            # doesn't need to have it.
+            if [ -n "$PREP_SCRIPT" ]; then
+              bash "$GITHUB_WORKSPACE/head/$PREP_SCRIPT"
+            fi
+          }
+
+          (prepare base)
+          (prepare head)
+
+      # Anonymous pulls from public.ecr.aws share a data quota per runner IP,
+      # which other GitHub Actions users regularly use up. flate reads the
+      # login from ~/.docker/config.json. The AWS keys are scoped to this step
+      # so they never reach the render. Fork PRs don't get secrets and fall
+      # back to anonymous pulls.
+      - name: Log in to ECR Public
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.ECR_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.ECR_AWS_SECRET_ACCESS_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+            echo "No ECR credentials, pulling from public.ecr.aws anonymously."
+            exit 0
+          fi
+          # ECR Public auth is only served from us-east-1
+          aws ecr-public get-login-password --region us-east-1 \
+            | docker login --username AWS --password-stdin public.ecr.aws
+
+      # Produces two views:
+      #   flux      Kustomizations rendered, HelmReleases left as HelmRelease
+      #             objects. Shows what changed in the repo's own config.
+      #   rendered  HelmReleases templated into the objects their charts
+      #             create. Shows what actually changes in the cluster.
+      #
+      # Each side is rendered in full with flate build and compared with dyff.
+      # flate diff isn't used because it only re-renders Kustomizations that
+      # own a changed file, and it can't see the Kustomizations under the
+      # sync path before rendering them, so app changes come out as an empty
+      # diff. See home-operations/flate#853.
+      - name: Render and diff
+        id: diff
+        env:
+          CLUSTER: ${{ matrix.cluster }}
+          FLATE_ARGS: ${{ inputs.flate_args }}
+          RENDERED_VIEW: ${{ inputs.rendered_view }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          # The flate action exports FLATE_BASE, which turns flate build into
+          # a partial render against that branch
+          FLATE_BASE: ""
+        run: |
+          set -euo pipefail
+          mkdir -p out
+
+          # --source-retry-*: public.ecr.aws returns 429 "Rate exceeded" on
+          #   bursts of chart pulls, so back off longer than the default.
+          read -ra extra_flags <<< "$FLATE_ARGS"
+          flags=(
+            --no-progress
+            --source-retry-attempts 5
+            --source-retry-max-wait 30s
+            "${extra_flags[@]}"
+          )
+
+          views=(flux)
+          if [ "$RENDERED_VIEW" = "true" ]; then
+            views+=(rendered)
+          fi
+
+          # Usage: render <base|head> <ks|all> <view>
+          render() {
+            flate build "$2" --path "$1/.flate/$CLUSTER" "${flags[@]}" \
+              > "out/$1-$3.yaml" 2> "out/$1-$3.log"
+          }
+
+          base_failed=
+          failed=
+          for side in base head; do
+            for view in "${views[@]}"; do
+              kind=ks
+              if [ "$view" = "rendered" ]; then
+                kind=all
+              fi
+              if ! render "$side" "$kind" "$view"; then
+                if [ "$side" = "base" ]; then base_failed=1; else failed=1; fi
+              fi
+            done
+          done
+
+          # Helm chart bumps relabel every object, which buries the real
+          # changes.
+          #
+          # Usage: diff_view <view>
+          diff_view() {
+            dyff between \
+              --omit-header \
+              --output github \
+              --exclude-regexp '/metadata/labels/helm\.sh/chart$' \
+              --exclude-regexp '/labels/app\.kubernetes\.io/version$' \
+              --exclude-regexp '/labels/chart$' \
+              --exclude-regexp '/annotations/checksum/' \
+              "out/base-$1.yaml" "out/head-$1.yaml" > "out/diff-$1.md"
+
+            # dyff prints a blank line when there's no diff
+            if ! grep -q '[^[:space:]]' "out/diff-$1.md"; then
+              : > "out/diff-$1.md"
+            fi
+          }
+
+          for view in "${views[@]}"; do
+            diff_view "$view"
+          done
+
+          # Prints a side's render errors.
+          #
+          # Usage: print_errors <base|head>
+          print_errors() {
+            echo '```'
+            for view in "${views[@]}"; do
+              cat "out/$1-$view.log"
+            done | { grep -E '✗|^\s+' || true; } | awk '!seen[$0]++' | head -50
+            echo '```'
+          }
+
+          # Prints a diff in a code block, cut off at <limit> characters so
+          # the whole comment stays under GitHub's 65536 character cap.
+          #
+          # Usage: print_diff <view> <limit>
+          print_diff() {
+            local file="out/diff-$1.md"
+            echo '```diff'
+            head -c "$2" "$file"
+            echo
+            echo '```'
+            if [ "$(wc -c < "$file")" -gt "$2" ]; then
+              echo
+              echo "_Diff truncated. The full diff is in the \`flux-diff-$CLUSTER\` artifact on the [workflow run]($RUN_URL)._"
+            fi
+          }
+
+          {
+            echo "<!-- flux-diff:$CLUSTER -->"
+            echo "### Flux diff: \`$CLUSTER\`"
+            echo
+            if [ -n "$failed" ]; then
+              echo "> [!CAUTION]"
+              echo "> This branch failed to render. Objects from failed resources are missing from the diff below."
+              echo
+              print_errors head
+              echo
+            fi
+            if [ -n "$base_failed" ]; then
+              echo "> [!WARNING]"
+              echo "> The base branch failed to render. Objects from failed resources may show up as added."
+              echo
+              echo "<details>"
+              echo "<summary>Base branch render errors</summary>"
+              echo
+              print_errors base
+              echo
+              echo "</details>"
+              echo
+            fi
+
+            if [ ! -s out/diff-flux.md ] && { [ "$RENDERED_VIEW" != "true" ] || [ ! -s out/diff-rendered.md ]; }; then
+              echo "No changes to rendered manifests."
+            else
+              echo "#### Flux resources"
+              echo
+              if [ -s out/diff-flux.md ]; then
+                print_diff flux 20000
+              else
+                echo "No changes to Kustomizations, HelmReleases or plain manifests."
+              fi
+              if [ "$RENDERED_VIEW" = "true" ]; then
+                echo
+                echo "<details>"
+                echo "<summary>Rendered Helm output</summary>"
+                echo
+                if [ -s out/diff-rendered.md ]; then
+                  print_diff rendered 40000
+                else
+                  echo "No changes to rendered manifests."
+                fi
+                echo
+                echo "</details>"
+              fi
+            fi
+          } > out/comment.md
+
+          echo "failed=$failed" >> "$GITHUB_OUTPUT"
+          cat out/comment.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload rendered manifests
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: flux-diff-${{ matrix.cluster }}
+          path: out/
+          retention-days: 14
+
+      # One comment per cluster, updated in place on every push. Fork PRs get
+      # a read-only token, so they only get the step summary.
+      - name: Comment on PR
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          CLUSTER: ${{ matrix.cluster }}
+        run: |
+          set -euo pipefail
+          marker="<!-- flux-diff:${CLUSTER} -->"
+
+          existing=$(gh api --paginate "repos/$REPO/issues/$PR/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id" | head -n 1)
+
+          if [ -n "$existing" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$existing" -F body=@out/comment.md > /dev/null
+          else
+            gh api "repos/$REPO/issues/$PR/comments" -F body=@out/comment.md > /dev/null
+          fi
+
+      - name: Fail if the PR branch doesn't render
+        if: steps.diff.outputs.failed == '1'
+        env:
+          CLUSTER: ${{ matrix.cluster }}
+        run: |
+          echo "::error::The $CLUSTER cluster failed to render. See the errors in the step summary or the flux-diff-$CLUSTER artifact."
+          exit 1
