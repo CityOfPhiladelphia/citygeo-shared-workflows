@@ -62,7 +62,7 @@ Your mule app may need a secret provided to it, such as an API key, database pas
 
 #### Option A (Recommended) - Retrieving secret from Keeper
 
-1. Insert the secret into the proper Keeper shared vault
+1. Insert the secret into the proper Keeper shared vault. If you do not have access to Keeper, please ask CityGeo to do this step for you, and they will provide back the Keeper UID.
    1. `CityGeo-MuleSoft (76TlMQ8DHGTPNEOVK-_bUw)` for non-CJIS
    1. `CityGeo-MuleSoft-Secure-GHActions (oKityiSbF9vBn2XyQI_J2g)` for CJIS
 1. Update the `additionalKeeperSecrets` workflow input variable using the syntax from [Keeper docs](https://docs.keeper.io/keeperpam/secrets-manager/integrations/github-actions) and pipe it into `env:{NAME}`
